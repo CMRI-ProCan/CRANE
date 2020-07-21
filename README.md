@@ -6,10 +6,8 @@ CRANE is a wavelet transform based method for de-noising electrospray ionisation
 
 In the command line run setup-env.sh
 
-``
-chmod +x setup-env.sh
-bash script-name-here.sh
-``
+``chmod +x setup-env.sh``
+``bash script-name-here.sh``
 
 ## Set up path 
 
@@ -38,10 +36,8 @@ Please refer the crane_denoise_multicenter_*.py scripts in the case study sectio
 
 ## Running tests
 
-``
-pip install pytest
-pytest crane
-``
+``pip install pytest``
+``pytest crane``
 
 ## References
 
