@@ -4,10 +4,13 @@ CRANE is a wavelet transform based method for de-noising electrospray ionisation
 
 ## Set up environment
 
+Inorder to set up the environment, conda is a prerequisite (https://docs.conda.io/projects/conda/en/latest/user-guide/install/).
 In the command line run setup-env.sh
 
-``chmod +x setup-env.sh``
-``bash script-name-here.sh``
+```
+bash setup-env.sh
+conda activate crane
+```
 
 ## Set up path 
 
@@ -36,8 +39,10 @@ Please refer the crane_denoise_multicenter_*.py scripts in the case study sectio
 
 ## Running tests
 
-``pip install pytest``
-``pytest crane``
+```
+pip install pytest
+pytest crane
+```
 
 ## References
 
