@@ -4,7 +4,7 @@ import pywt
 import logging
 import enum
 import math
-
+import pybeads
 
 class Transform(enum.Enum):
     NoTransform = 1
@@ -1105,3 +1105,99 @@ class AdaptiveCrane(CraneBase):
         xic_final_denoised = self.apply_inverse_transform(xic_final_denoised, self.transform_technique)
 
         return xic_final_denoised.T
+    
+    
+class BEADS(DenoiserBase):
+    """
+    Denoise each single ion chromatogram acording to the algorithm described in "Ning, X., Selesnick, I.W. and Duval, L.
+    Chromatogram baseline estimation and denoising using sparsity (BEADS). Chemometrics and Intelligent Laboratory Systems
+    2014;139:156-167."
+    """
+    
+    def __init__(
+        self,
+        d = 1,
+        fc = 0.006,
+        r = 6,
+        Nit = 15,
+        lam0 = 0.4, # lam0 = 0.5 * amp with amp = 0.8
+        lam1 = 4.0, # lam1 = 5 * amp with amp = 0.8
+        lam2 = 3.2, # lam2 = 4 * amp with amp = 0.8
+        pen = 'L1_v2',
+    ):
+        """
+        :param d int: Filter order (d = 1 or 2).
+        :param fc float: Filter cut-off frequency (cycles/sample) (0 < fc < 0.5).
+        :param r float: Asymmetry ratio for penalty function (r > 0).
+        :param Nit int: Number of iteration (usually 10 to 30 is enough).
+        :param lam0, lam1, lam2 float: Regularization parameters.
+        :param pen string: Penalty function, 'L1_v1' or 'L1_v2'.
+        """
+        self.d = d
+        assert isinstance(self.d, int), 'Filter order should be an integer'
+        assert self.d > 0, 'Filter order should be positive'
+        self.fc = fc
+        assert isinstance(self.fc, float), 'Filter cut-off frequency should be a number'
+        assert self.fc > 0, 'Filter cut-off frequency should be positive'
+        assert self.fc < 0.5, 'Filter cut-off frequency should be less than 0.5'
+        self.r = r
+        assert self.r > 0, 'Asymmetry ratio for penalty function should be positive'
+        self.Nit = Nit
+        assert isinstance(self.Nit, int), 'Number of iteration should be an integer'
+        assert self.Nit > 0, 'Number of iteration should be positive'
+        self.lam0 = lam0
+        assert isinstance(self.lam0, float), 'Regularization parameters should be numbers'
+        assert self.lam0 > 0, 'Regularization parameters should be positive'
+        self.lam1 = lam1
+        assert isinstance(self.lam1, float), 'Regularization parameters should be numbers'
+        assert self.lam1 > 0, 'Regularization parameters should be positive'
+        self.lam2 = lam2
+        assert isinstance(self.lam2, float), 'Regularization parameters should be numbers'
+        assert self.lam2 > 0, 'Regularization parameters should be positive'
+        self.pen = pen
+        assert self.pen in ['L1_v1', 'L1_v2'], 'Penalty function should be either L1_v1 or L1_v2'
+    
+    def apply(self, intensities):
+        """
+        Given the extracted ion chromatogram intensities this function returns the denoised data via the algorithm 
+        described in "Ning, X., Selesnick, I.W. and Duval, L. Chromatogram baseline estimation and denoising using sparsity
+        (BEADS). Chemometrics and Intelligent Laboratory Systems 2014;139:156-167"
+        """
+        
+        if np.count_nonzero(intensities) == 0:
+            # Empty intensities matrix
+            logging.debug('Empty intensities matrix')
+            return intensities
+        
+        def sigmoid(x):
+            return 1 / (1 + np.exp(-x))
+        
+        denoised_intensities = np.empty(intensities.T.shape)
+        xscale_l, xscale_r = 100, 100
+        dx = 1
+        
+        for i in range(intensities.T.shape[0]):
+            y = intensities.T[i,:]
+            y_l = y[0]*sigmoid(1/xscale_l*np.arange(-5*xscale_l, 5*xscale_l, dx))
+            y_r = y[-1]*sigmoid(-1/xscale_r*np.arange(-5*xscale_r, 5*xscale_r, dx))
+            y_ext = np.hstack([y_l, y, y_r])
+            len_l, len_o, len_r = len(y_l), len(y), len(y_r)
+            signal_est, bg_est, cost = pybeads.beads(
+                y_ext,
+                self.d,
+                self.fc,
+                self.r,
+                self.Nit,
+                self.lam0,
+                self.lam1,
+                self.lam2,
+                self.pen,
+                conv=None
+            )
+            denoised_intensities[i,:] = signal_est[len_l: len_l+len_o]
+            
+        #Sometimes BEADS produce negative signal_est. Since MS data is positive we set all negative values to zero
+        mask = denoised_intensities < 0
+        denoised_intensities[mask] = 0
+        
+        return denoised_intensities.T
