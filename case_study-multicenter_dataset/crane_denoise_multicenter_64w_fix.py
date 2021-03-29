@@ -126,7 +126,7 @@ def initialise_denoiser_crane(param_set):
     )
     return denoiser
 
-def crane_dilution_with_param_set(tof, param_set1, param_set2):
+def create_CRANE_denoised_file(tof, param_set1, param_set2):
     ms1_denoiser = initialise_denoiser_crane(param_set1)
     ms2_denoiser = initialise_denoiser_crane(param_set2)
     tof_path = tof_dir + tof
@@ -164,5 +164,5 @@ for param_set1 in MS1_settings_list:
 #     for param_set2 in MS2_settings_list:
     param_set2 = param_set1
     for file in file_list:
-        message = crane_dilution_with_param_set(file, param_set1, param_set2)
+        message = create_CRANE_denoised_file(file, param_set1, param_set2)
         print(message)
