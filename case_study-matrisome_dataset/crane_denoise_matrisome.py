@@ -31,7 +31,7 @@
 # The Raw toffee files needs to be saved in a sub directory called tof 
 # and the srls need to be saved in a subdirectory called srl for the script 
 # to work. Raw toffee files and srls can be downloaded from 
-# ProteomeXchange (Identifier—........)
+# ProteomeXchange (Identifier—PXD025103)
 # 
 # ======================================================================
 import os
